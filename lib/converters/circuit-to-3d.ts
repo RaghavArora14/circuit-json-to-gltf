@@ -35,7 +35,7 @@ function getComponentYPosition(
   componentHeight: number,
 ): number {
   const isBottomLayer = layer === "bottom"
-  
+
   if (isBottomLayer) {
     // Bottom layer components are placed below the board
     return -(boardThickness / 2 + componentHeight / 2)
@@ -138,7 +138,11 @@ export async function convertCircuitJsonTo3D(
       ? { x: cad.position.x, y: cad.position.z, z: cad.position.y }
       : {
           x: pcbComponent?.center.x ?? 0,
-          y: getComponentYPosition(pcbComponent?.layer ?? "top", boardThickness, size.y),
+          y: getComponentYPosition(
+            pcbComponent?.layer ?? "top",
+            boardThickness,
+            size.y,
+          ),
           z: pcbComponent?.center.y ?? 0,
         }
 

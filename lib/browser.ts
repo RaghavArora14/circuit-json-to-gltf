@@ -36,7 +36,7 @@ function getComponentYPosition(
   componentHeight: number,
 ): number {
   const isBottomLayer = layer === "bottom"
-  
+
   if (isBottomLayer) {
     // Bottom layer components are placed below the board
     return -(boardThickness / 2 + componentHeight / 2)

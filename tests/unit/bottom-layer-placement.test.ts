@@ -55,23 +55,23 @@ test("bottom-layer components should be placed below board", async () => {
   expect(boardBox?.center.y).toBe(0) // Board should be at Y=0
 
   // Find top and bottom components
-  const topComponent = scene.boxes.find(box => box.label === "R1")
-  const bottomComponent = scene.boxes.find(box => box.label === "U1")
+  const topComponent = scene.boxes.find((box) => box.label === "R1")
+  const bottomComponent = scene.boxes.find((box) => box.label === "U1")
 
   expect(topComponent).toBeDefined()
   expect(bottomComponent).toBeDefined()
 
   // Top component should be above the board (positive Y)
   expect(topComponent!.center.y).toBeGreaterThan(0)
-  
+
   // Bottom component should be below the board (negative Y)
   expect(bottomComponent!.center.y).toBeLessThan(0)
-  
+
   // The absolute distance from board center should be similar for both
   const boardCenterY = boardBox!.center.y
   const topDistance = Math.abs(topComponent!.center.y - boardCenterY)
   const bottomDistance = Math.abs(bottomComponent!.center.y - boardCenterY)
-  
+
   // Distances should be similar (within 0.5mm tolerance)
   expect(Math.abs(topDistance - bottomDistance)).toBeLessThan(0.5)
 })
@@ -87,7 +87,7 @@ test("components without layer specified should default to top", async () => {
       thickness: 1.6,
     },
     {
-      type: "pcb_component", 
+      type: "pcb_component",
       pcb_component_id: "comp1",
       source_component_id: "src1",
       center: { x: 0, y: 0 },
@@ -108,9 +108,9 @@ test("components without layer specified should default to top", async () => {
     boardThickness: 1.6,
   })
 
-  const component = scene.boxes.find(box => box.label === "R1")
+  const component = scene.boxes.find((box) => box.label === "R1")
   expect(component).toBeDefined()
-  
+
   // Component without layer should be placed on top (positive Y)
   expect(component!.center.y).toBeGreaterThan(0)
 })
