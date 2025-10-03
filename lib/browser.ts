@@ -30,6 +30,22 @@ import { convertSceneToGLTF } from "./converters/scene-to-gltf"
 const DEFAULT_BOARD_THICKNESS = 1.6
 const DEFAULT_COMPONENT_HEIGHT = 2
 
+function getComponentYPosition(
+  layer: string | undefined,
+  boardThickness: number,
+  componentHeight: number,
+): number {
+  const isBottomLayer = layer === "bottom"
+  
+  if (isBottomLayer) {
+    // Bottom layer components are placed below the board
+    return -(boardThickness / 2 + componentHeight / 2)
+  } else {
+    // Top layer components (default) are placed above the board
+    return boardThickness / 2 + componentHeight / 2
+  }
+}
+
 export async function convertCircuitJsonTo3D(
   circuitJson: CircuitJson,
   options: any = {},
@@ -78,7 +94,7 @@ export async function convertCircuitJsonTo3D(
     boxes.push({
       center: {
         x: component.center.x,
-        y: boardThickness / 2 + compHeight / 2,
+        y: getComponentYPosition(component.layer, boardThickness, compHeight),
         z: component.center.y,
       },
       size: {

@@ -29,6 +29,22 @@ function convertRotationFromCadRotation(rot: {
   }
 }
 
+function getComponentYPosition(
+  layer: string | undefined,
+  boardThickness: number,
+  componentHeight: number,
+): number {
+  const isBottomLayer = layer === "bottom"
+  
+  if (isBottomLayer) {
+    // Bottom layer components are placed below the board
+    return -(boardThickness / 2 + componentHeight / 2)
+  } else {
+    // Top layer components (default) are placed above the board
+    return boardThickness / 2 + componentHeight / 2
+  }
+}
+
 export async function convertCircuitJsonTo3D(
   circuitJson: CircuitJson,
   options: CircuitTo3DOptions = {},
@@ -122,7 +138,7 @@ export async function convertCircuitJsonTo3D(
       ? { x: cad.position.x, y: cad.position.z, z: cad.position.y }
       : {
           x: pcbComponent?.center.x ?? 0,
-          y: boardThickness / 2 + size.y / 2,
+          y: getComponentYPosition(pcbComponent?.layer ?? "top", boardThickness, size.y),
           z: pcbComponent?.center.y ?? 0,
         }
 
@@ -199,7 +215,7 @@ export async function convertCircuitJsonTo3D(
     boxes.push({
       center: {
         x: component.center.x,
-        y: boardThickness / 2 + compHeight / 2,
+        y: getComponentYPosition(component.layer, boardThickness, compHeight),
         z: component.center.y,
       },
       size: {
