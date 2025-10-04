@@ -102,7 +102,15 @@ test("bottom-layer-components-snapshot", async () => {
 
   expect(glbResult).toBeInstanceOf(ArrayBuffer)
 
-  const cameraOptions = getBestCameraPosition(circuitJson)
+  // Camera positioned to clearly show both top and bottom layer components
+  const cameraOptions = {
+    position: { x: 35, y: 25, z: 25 },
+    target: { x: 0, y: 0, z: 0 },
+    up: { x: 0, y: 1, z: 0 },
+    fov: 45,
+    width: 800,
+    height: 600,
+  }
 
   expect(
     renderGLTFToPNGBufferFromGLBBuffer(glbResult as ArrayBuffer, cameraOptions),
