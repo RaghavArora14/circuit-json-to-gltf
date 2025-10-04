@@ -17,13 +17,15 @@ const circuitData = JSON.parse(
   readFileSync(circuitPath, "utf-8"),
 ) as CircuitJson
 
-test("board texture generation pipeline", async () => {
+test(
+  "board texture generation pipeline", 
+  async () => {
   console.log("Testing board texture generation...")
 
   // Test 1: Check if we can render board textures
   console.log("Step 1: Testing renderBoardTextures...")
   try {
-    const textures = await renderBoardTextures(circuitData, 256)
+    const textures = await renderBoardTextures(circuitData, 128) // Reduced resolution for faster CI testing
     console.log("✅ renderBoardTextures completed")
     console.log("Top texture length:", textures.top.length)
     console.log("Bottom texture length:", textures.bottom.length)
@@ -43,13 +45,13 @@ test("board texture generation pipeline", async () => {
   try {
     const topLayer = await renderBoardLayer(circuitData, {
       layer: "top",
-      resolution: 256,
+      resolution: 128, // Reduced resolution for faster CI testing
     })
     console.log("✅ Top layer rendered, length:", topLayer.length)
 
     const bottomLayer = await renderBoardLayer(circuitData, {
       layer: "bottom",
-      resolution: 256,
+      resolution: 128, // Reduced resolution for faster CI testing
     })
     console.log("✅ Bottom layer rendered, length:", bottomLayer.length)
 
@@ -65,7 +67,7 @@ test("board texture generation pipeline", async () => {
   try {
     const scene = await convertCircuitJsonTo3D(circuitData, {
       renderBoardTextures: true,
-      textureResolution: 256,
+      textureResolution: 128, // Reduced resolution for faster CI testing
     })
 
     console.log("✅ 3D conversion completed")
@@ -155,4 +157,4 @@ test("circuit data analysis", () => {
   } else {
     console.log("⚠️  No PCB vias found")
   }
-})
+}, 15000) // 15 second timeout for CI

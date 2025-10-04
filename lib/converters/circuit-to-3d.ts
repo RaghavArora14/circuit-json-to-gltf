@@ -229,7 +229,7 @@ export async function convertCircuitJsonTo3D(
     )
 
     const isBottomLayer = component.layer === "bottom"
-    
+
     const genericBox: Box3D = {
       center: {
         x: component.center.x,
