@@ -23,7 +23,7 @@ test("board texture generation pipeline", async () => {
   // Test 1: Check if we can render board textures
   console.log("Step 1: Testing renderBoardTextures...")
   try {
-    const textures = await renderBoardTextures(circuitData, 128) // Reduced resolution for faster CI testing
+    const textures = await renderBoardTextures(circuitData, 256)
     console.log("✅ renderBoardTextures completed")
     console.log("Top texture length:", textures.top.length)
     console.log("Bottom texture length:", textures.bottom.length)
@@ -43,13 +43,13 @@ test("board texture generation pipeline", async () => {
   try {
     const topLayer = await renderBoardLayer(circuitData, {
       layer: "top",
-      resolution: 128, // Reduced resolution for faster CI testing
+      resolution: 256,
     })
     console.log("✅ Top layer rendered, length:", topLayer.length)
 
     const bottomLayer = await renderBoardLayer(circuitData, {
       layer: "bottom",
-      resolution: 128, // Reduced resolution for faster CI testing
+      resolution: 256,
     })
     console.log("✅ Bottom layer rendered, length:", bottomLayer.length)
 
@@ -65,7 +65,7 @@ test("board texture generation pipeline", async () => {
   try {
     const scene = await convertCircuitJsonTo3D(circuitData, {
       renderBoardTextures: true,
-      textureResolution: 128, // Reduced resolution for faster CI testing
+      textureResolution: 256,
     })
 
     console.log("✅ 3D conversion completed")
@@ -155,4 +155,4 @@ test("circuit data analysis", () => {
   } else {
     console.log("⚠️  No PCB vias found")
   }
-}, 15000) // 15 second timeout for CI
+})
