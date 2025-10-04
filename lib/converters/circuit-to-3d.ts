@@ -37,8 +37,8 @@ function getComponentYPosition(
   const isBottomLayer = layer === "bottom"
 
   if (isBottomLayer) {
-    // Bottom layer components are placed below the board
-    return -(boardThickness / 2 + componentHeight / 2)
+    // Bottom layer components are placed below the board with extra clearance for visibility
+    return -(boardThickness / 2 + componentHeight / 2 + 0.7)
   } else {
     // Top layer components (default) are placed above the board
     return boardThickness / 2 + componentHeight / 2
@@ -125,6 +125,7 @@ export async function convertCircuitJsonTo3D(
 
     // Get the associated PCB component
     const pcbComponent = db.pcb_component.get(cad.pcb_component_id)
+    const isBottomLayer = pcbComponent?.layer === "bottom"
 
     // Determine size
     const size = cad.size ?? {
@@ -161,7 +162,7 @@ export async function convertCircuitJsonTo3D(
       meshType: meshType as any,
     }
 
-    // Add rotation if specified
+    // Add rotation if specified, with special handling for bottom layer
     if (cad.rotation) {
       // For GLB/GLTF models, we need to remap rotation axes because the coordinate
       // system has Y and Z swapped. Circuit JSON uses Z-up, but the transformed
@@ -169,13 +170,24 @@ export async function convertCircuitJsonTo3D(
       if (model_glb_url || model_gltf_url) {
         // Remap rotation: circuit Z -> model Y, circuit Y -> model Z
         box.rotation = convertRotationFromCadRotation({
-          x: cad.rotation.x,
+          x: isBottomLayer ? cad.rotation.x + 180 : cad.rotation.x, // Flip bottom components
           y: cad.rotation.z, // Circuit Z rotation becomes model Y rotation
           z: cad.rotation.y, // Circuit Y rotation becomes model Z rotation
         })
       } else {
-        box.rotation = convertRotationFromCadRotation(cad.rotation)
+        box.rotation = convertRotationFromCadRotation({
+          x: isBottomLayer ? cad.rotation.x + 180 : cad.rotation.x, // Flip bottom components
+          y: cad.rotation.y,
+          z: cad.rotation.z,
+        })
       }
+    } else if (isBottomLayer) {
+      // If no rotation specified but component is on bottom, flip it around X-axis
+      box.rotation = convertRotationFromCadRotation({
+        x: 180, // Flip upside down for bottom layer
+        y: 0,
+        z: 0,
+      })
     }
 
     // Try to load the mesh with default coordinate transform if none specified
@@ -216,7 +228,9 @@ export async function convertCircuitJsonTo3D(
       defaultComponentHeight,
     )
 
-    boxes.push({
+    const isBottomLayer = component.layer === "bottom"
+    
+    const genericBox: Box3D = {
       center: {
         x: component.center.x,
         y: getComponentYPosition(component.layer, boardThickness, compHeight),
@@ -230,7 +244,18 @@ export async function convertCircuitJsonTo3D(
       color: componentColor,
       label: sourceComponent?.name ?? "?",
       labelColor: "white",
-    })
+    }
+
+    // Add rotation for bottom layer components to make them visually distinct
+    if (isBottomLayer) {
+      genericBox.rotation = convertRotationFromCadRotation({
+        x: 180, // Flip upside down for bottom layer
+        y: 0,
+        z: 0,
+      })
+    }
+
+    boxes.push(genericBox)
   }
 
   // Create a default camera positioned to view the board

@@ -72,8 +72,8 @@ test("bottom-layer components should be placed below board", async () => {
   const topDistance = Math.abs(topComponent!.center.y - boardCenterY)
   const bottomDistance = Math.abs(bottomComponent!.center.y - boardCenterY)
 
-  // Distances should be similar (within 0.5mm tolerance)
-  expect(Math.abs(topDistance - bottomDistance)).toBeLessThan(0.5)
+  // Distances should be similar (within 1.0mm tolerance, accounting for extra bottom clearance)
+  expect(Math.abs(topDistance - bottomDistance)).toBeLessThan(1.0)
 })
 
 test("components without layer specified should default to top", async () => {
