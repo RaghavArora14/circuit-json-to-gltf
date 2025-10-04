@@ -17,9 +17,7 @@ const circuitData = JSON.parse(
   readFileSync(circuitPath, "utf-8"),
 ) as CircuitJson
 
-test(
-  "board texture generation pipeline", 
-  async () => {
+test("board texture generation pipeline", async () => {
   console.log("Testing board texture generation...")
 
   // Test 1: Check if we can render board textures
