@@ -22,6 +22,7 @@ test("board-outline-direction-snapshot", async () => {
       height: 50,
       thickness: 1.6,
       num_layers: 2,
+      material: "fr4" as const,
       // Board outline with semicircular cutout at top
       outline: (() => {
         const points = []
@@ -61,7 +62,9 @@ test("board-outline-direction-snapshot", async () => {
       width: 24,
       height: 16,
       layer: "top",
-    },
+      rotation: 0,
+      obstructs_within_bounds: true,
+    } as const,
     // Chip pads - bottom row (pins 1-10) - 2x scale
     {
       type: "pcb_smtpad",
@@ -299,7 +302,9 @@ test("board-outline-direction-snapshot", async () => {
       width: 4,
       height: 12,
       layer: "top",
-    },
+      rotation: 0,
+      obstructs_within_bounds: true,
+    } as const,
     {
       type: "pcb_smtpad",
       pcb_smtpad_id: "jp1",
@@ -351,6 +356,7 @@ test("board-outline-direction-snapshot", async () => {
       x: -20,
       y: -20,
       hole_diameter: 3,
+      hole_shape: "circle" as const,
     },
     {
       type: "pcb_hole",
@@ -358,6 +364,7 @@ test("board-outline-direction-snapshot", async () => {
       x: -10,
       y: -20,
       hole_diameter: 3,
+      hole_shape: "circle" as const,
     },
     {
       type: "pcb_hole",
@@ -365,6 +372,7 @@ test("board-outline-direction-snapshot", async () => {
       x: 0,
       y: -20,
       hole_diameter: 3,
+      hole_shape: "circle" as const,
     },
     {
       type: "pcb_hole",
@@ -372,6 +380,7 @@ test("board-outline-direction-snapshot", async () => {
       x: 10,
       y: -20,
       hole_diameter: 3,
+      hole_shape: "circle" as const,
     },
     {
       type: "pcb_hole",
@@ -379,6 +388,7 @@ test("board-outline-direction-snapshot", async () => {
       x: 20,
       y: -20,
       hole_diameter: 3,
+      hole_shape: "circle" as const,
     },
   ]
 
