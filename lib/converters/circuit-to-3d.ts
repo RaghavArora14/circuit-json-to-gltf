@@ -30,7 +30,6 @@ import {
   createBoundingBox,
   geom3ToTriangles,
 } from "../utils/pcb-board-geometry"
-import { createPanelMesh } from "../utils/pcb-panel-geometry"
 import { extrudeLinear } from "@jscad/modeling/src/operations/extrusions"
 import { polygon } from "@jscad/modeling/src/primitives"
 import { rotateX, translate } from "@jscad/modeling/src/operations/transforms"
@@ -85,11 +84,13 @@ export async function convertCircuitJsonTo3D(
     const pcbHoles = (db.pcb_hole?.list?.() ?? []) as PcbHole[]
     const pcbPlatedHoles = (db.pcb_plated_hole?.list?.() ??
       []) as PCBPlatedHole[]
+    const pcbCutouts = (db.pcb_cutout?.list?.() ?? []) as PcbCutout[]
 
-    const panelMesh = createPanelMesh(pcbPanel, {
+    const panelMesh = createBoardMesh(pcbPanel, {
       thickness: effectiveBoardThickness,
       holes: pcbHoles,
       platedHoles: pcbPlatedHoles,
+      cutouts: pcbCutouts,
     })
 
     const meshWidth = panelMesh.boundingBox.max.x - panelMesh.boundingBox.min.x
