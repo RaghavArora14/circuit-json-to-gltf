@@ -30,7 +30,7 @@ import {
   type MeshData,
   type FaceMeshData,
 } from "./geometry"
-import { type Bounds, isPointInsideAnyBounds } from "../utils/bounds"
+import { type Bounds, isTriangleInsideAnyBoardBounds } from "../utils/bounds"
 
 export class GLTFBuilder {
   private gltf: GLTF
@@ -278,29 +278,8 @@ export class GLTFBuilder {
     defaultMaterialIndex: number,
   ): Promise<void> {
     const hasMultipleBoards = box.boardBounds && box.boardBounds.length > 1
+    const boxCenter = { x: box.center.x, z: box.center.z }
 
-    const isTriangleInsideBoard = (
-      triangle: NonNullable<typeof box.mesh>["triangles"][0],
-    ): boolean => {
-      if (!hasMultipleBoards) {
-        return true
-      }
-      const centerX =
-        (triangle.vertices[0].x +
-          triangle.vertices[1].x +
-          triangle.vertices[2].x) /
-        3
-      const centerZ =
-        (triangle.vertices[0].z +
-          triangle.vertices[1].z +
-          triangle.vertices[2].z) /
-        3
-
-      const pcbX = centerX + box.center.x
-      const pcbY = -centerZ + box.center.z
-
-      return isPointInsideAnyBounds(pcbX, pcbY, box.boardBounds!)
-    }
     const topTrianglesTextured: NonNullable<typeof box.mesh>["triangles"] = []
     const topTrianglesSolid: NonNullable<typeof box.mesh>["triangles"] = []
     const bottomTrianglesTextured: NonNullable<typeof box.mesh>["triangles"] =
@@ -313,7 +292,9 @@ export class GLTFBuilder {
     for (const triangle of box.mesh!.triangles) {
       const absNormalY = Math.abs(triangle.normal.y)
       if (absNormalY > FACE_ORIENTATION_THRESHOLD) {
-        const insideBoard = isTriangleInsideBoard(triangle)
+        const insideBoard =
+          !hasMultipleBoards ||
+          isTriangleInsideAnyBoardBounds(triangle, boxCenter, box.boardBounds!)
         if (triangle.normal.y > 0) {
           if (insideBoard) {
             topTrianglesTextured.push(triangle)

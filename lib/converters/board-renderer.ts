@@ -3,76 +3,12 @@ import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import type { BoardRenderOptions } from "../types"
 import {
   type Bounds,
-  isPcbBoard,
-  isPcbPanel,
-  getBoundsFromElement,
+  getCircuitJsonTextureBounds,
+  getIndividualBoardBounds,
 } from "../utils/bounds"
 
 export type TextureBounds = Bounds
 export type BoardBounds = Bounds
-
-export function calculateSvgBounds(circuitJson: CircuitJson): TextureBounds {
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-
-  const boards = circuitJson.filter(isPcbBoard)
-
-  if (boards.length > 0) {
-    for (const board of boards) {
-      if (board.center && board.width && board.height) {
-        const bounds = getBoundsFromElement({
-          center: board.center,
-          width: board.width,
-          height: board.height,
-        })
-        minX = Math.min(minX, bounds.minX)
-        minY = Math.min(minY, bounds.minY)
-        maxX = Math.max(maxX, bounds.maxX)
-        maxY = Math.max(maxY, bounds.maxY)
-      }
-    }
-  }
-
-  if (!Number.isFinite(minX)) {
-    const panel = circuitJson.find(isPcbPanel)
-    if (panel && panel.center && panel.width && panel.height) {
-      const bounds = getBoundsFromElement(panel)
-      minX = bounds.minX
-      minY = bounds.minY
-      maxX = bounds.maxX
-      maxY = bounds.maxY
-    }
-  }
-
-  if (!Number.isFinite(minX)) {
-    return { minX: -10, maxX: 10, minY: -10, maxY: 10 }
-  }
-
-  return { minX, maxX, minY, maxY }
-}
-
-export function getIndividualBoardBounds(
-  circuitJson: CircuitJson,
-): BoardBounds[] {
-  const boards = circuitJson.filter(isPcbBoard)
-  const bounds: BoardBounds[] = []
-
-  for (const board of boards) {
-    if (board.center && board.width && board.height) {
-      bounds.push(
-        getBoundsFromElement({
-          center: board.center,
-          width: board.width,
-          height: board.height,
-        }),
-      )
-    }
-  }
-
-  return bounds
-}
 
 export async function renderBoardLayer(
   circuitJson: CircuitJson,
@@ -184,7 +120,7 @@ export async function renderBoardTextures(
   boardBounds: BoardBounds[]
   backgroundColor: string
 }> {
-  const bounds = calculateSvgBounds(circuitJson)
+  const bounds = getCircuitJsonTextureBounds(circuitJson)
   const boardBounds = getIndividualBoardBounds(circuitJson)
 
   const [top, bottom] = await Promise.all([
