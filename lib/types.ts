@@ -1,3 +1,5 @@
+import type { CircuitJson } from "circuit-json"
+
 export interface ConversionOptions {
   format?: "gltf" | "glb"
   boardTextureResolution?: number
