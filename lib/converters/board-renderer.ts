@@ -1,11 +1,11 @@
 import type { CircuitJson } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import type { BoardRenderOptions } from "../types"
+import type { Bounds } from "@tscircuit/math-utils"
 import {
-  type Bounds,
-  getCircuitJsonTextureBounds,
+  getPcbBoundsFromCircuitJson,
   getIndividualBoardBounds,
-} from "../utils/bounds"
+} from "../utils/get-pcb-bounds-from-circuit-json"
 
 export type TextureBounds = Bounds
 export type BoardBounds = Bounds
@@ -108,8 +108,6 @@ async function convertSvgToCanvasBrowser(
   })
 }
 
-export const PCB_BACKGROUND_COLOR = "#0F3812"
-
 export async function renderBoardTextures(
   circuitJson: CircuitJson,
   resolution = 1024,
@@ -118,21 +116,20 @@ export async function renderBoardTextures(
   bottom: string
   bounds: TextureBounds
   boardBounds: BoardBounds[]
-  backgroundColor: string
 }> {
-  const bounds = getCircuitJsonTextureBounds(circuitJson)
+  const bounds = getPcbBoundsFromCircuitJson(circuitJson)
   const boardBounds = getIndividualBoardBounds(circuitJson)
 
   const [top, bottom] = await Promise.all([
     renderBoardLayer(circuitJson, {
       layer: "top",
       resolution,
-      backgroundColor: PCB_BACKGROUND_COLOR,
+      backgroundColor: "#0F3812",
     }),
     renderBoardLayer(circuitJson, {
       layer: "bottom",
       resolution,
-      backgroundColor: PCB_BACKGROUND_COLOR,
+      backgroundColor: "#0F3812",
     }),
   ])
 
@@ -141,6 +138,5 @@ export async function renderBoardTextures(
     bottom,
     bounds,
     boardBounds,
-    backgroundColor: PCB_BACKGROUND_COLOR,
   }
 }

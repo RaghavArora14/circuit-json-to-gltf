@@ -30,7 +30,13 @@ import {
   type MeshData,
   type FaceMeshData,
 } from "./geometry"
-import { type Bounds, isTriangleInsideAnyBoardBounds } from "../utils/bounds"
+import type { Bounds } from "@tscircuit/math-utils"
+
+// Extended Box3D with PCB-specific fields for texture mapping
+interface PcbBox3D {
+  textureBounds?: Bounds
+  boardBounds?: Bounds[]
+}
 
 export class GLTFBuilder {
   private gltf: GLTF
@@ -277,8 +283,40 @@ export class GLTFBuilder {
     box: Box3D,
     defaultMaterialIndex: number,
   ): Promise<void> {
-    const hasMultipleBoards = box.boardBounds && box.boardBounds.length > 1
-    const boxCenter = { x: box.center.x, z: box.center.z }
+    // Access PCB-specific fields via type assertion
+    const pcbBox = box as Box3D & PcbBox3D
+    const boardBounds = pcbBox.boardBounds ?? []
+    const hasMultipleBoards = boardBounds.length > 1
+
+    // Helper to check if triangle center is inside any board bounds
+    const isTriangleInsideBoards = (
+      triangle: NonNullable<typeof box.mesh>["triangles"][0],
+    ): boolean => {
+      if (!hasMultipleBoards) return true
+      const centerX =
+        (triangle.vertices[0].x +
+          triangle.vertices[1].x +
+          triangle.vertices[2].x) /
+        3
+      const centerZ =
+        (triangle.vertices[0].z +
+          triangle.vertices[1].z +
+          triangle.vertices[2].z) /
+        3
+      const pcbX = centerX + box.center.x
+      const pcbY = -centerZ + box.center.z
+      for (const bounds of boardBounds) {
+        if (
+          pcbX >= bounds.minX &&
+          pcbX <= bounds.maxX &&
+          pcbY >= bounds.minY &&
+          pcbY <= bounds.maxY
+        ) {
+          return true
+        }
+      }
+      return false
+    }
 
     const topTrianglesTextured: NonNullable<typeof box.mesh>["triangles"] = []
     const topTrianglesSolid: NonNullable<typeof box.mesh>["triangles"] = []
@@ -292,9 +330,7 @@ export class GLTFBuilder {
     for (const triangle of box.mesh!.triangles) {
       const absNormalY = Math.abs(triangle.normal.y)
       if (absNormalY > FACE_ORIENTATION_THRESHOLD) {
-        const insideBoard =
-          !hasMultipleBoards ||
-          isTriangleInsideAnyBoardBounds(triangle, boxCenter, box.boardBounds!)
+        const insideBoard = isTriangleInsideBoards(triangle)
         if (triangle.normal.y > 0) {
           if (insideBoard) {
             topTrianglesTextured.push(triangle)
@@ -394,19 +430,11 @@ export class GLTFBuilder {
 
     const panelFrameTriangles = [...topTrianglesSolid, ...bottomTrianglesSolid]
     if (panelFrameTriangles.length > 0) {
-      let frameColor: [number, number, number, number] = [0.04, 0.16, 0.08, 1.0]
-      if (box.panelFrameColor) {
-        frameColor = this.parseColorString(
-          typeof box.panelFrameColor === "string"
-            ? box.panelFrameColor
-            : `rgba(${box.panelFrameColor[0]},${box.panelFrameColor[1]},${box.panelFrameColor[2]},${box.panelFrameColor[3]})`,
-        )
-      }
-
+      // Use same green as PCB sides for panel frame areas
       const frameMaterialIndex = this.addMaterial({
         name: `PanelFrameMaterial_${this.materials.length}`,
         pbrMetallicRoughness: {
-          baseColorFactor: frameColor,
+          baseColorFactor: [0.04, 0.22, 0.07, 1.0],
           metallicFactor: 0.0,
           roughnessFactor: 0.8,
         },
@@ -426,11 +454,11 @@ export class GLTFBuilder {
     let texMinY: number
     let texMaxY: number
 
-    if (box.textureBounds) {
-      texMinX = box.textureBounds.minX
-      texMaxX = box.textureBounds.maxX
-      texMinY = box.textureBounds.minY
-      texMaxY = box.textureBounds.maxY
+    if (pcbBox.textureBounds) {
+      texMinX = pcbBox.textureBounds.minX
+      texMaxX = pcbBox.textureBounds.maxX
+      texMinY = pcbBox.textureBounds.minY
+      texMaxY = pcbBox.textureBounds.maxY
     } else {
       let minX = Infinity,
         minZ = Infinity

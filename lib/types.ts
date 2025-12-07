@@ -1,5 +1,3 @@
-import type { CircuitJson } from "circuit-json"
-
 export interface ConversionOptions {
   format?: "gltf" | "glb"
   boardTextureResolution?: number
@@ -88,19 +86,6 @@ export interface Box3D {
     left?: string
     right?: string
   }
-  textureBounds?: {
-    minX: number
-    maxX: number
-    minY: number
-    maxY: number
-  }
-  boardBounds?: Array<{
-    minX: number
-    maxX: number
-    minY: number
-    maxY: number
-  }>
-  panelFrameColor?: Color
   mesh?: STLMesh | OBJMesh
   meshUrl?: string
   meshType?: "stl" | "obj" | "glb"
