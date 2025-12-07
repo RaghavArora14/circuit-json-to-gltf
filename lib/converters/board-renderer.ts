@@ -9,6 +9,13 @@ export interface TextureBounds {
   maxY: number
 }
 
+export interface BoardBounds {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
 /**
  * Calculate the bounds that circuit-to-svg uses for rendering.
  * circuit-to-svg uses the bounds of pcb_board elements (not pcb_panel).
@@ -21,9 +28,7 @@ export function calculateSvgBounds(circuitJson: CircuitJson): TextureBounds {
   let maxY = -Infinity
 
   // First, try to find pcb_board elements (circuit-to-svg prioritizes these)
-  const boards = (circuitJson as any[]).filter(
-    (el) => el.type === "pcb_board",
-  )
+  const boards = (circuitJson as any[]).filter((el) => el.type === "pcb_board")
 
   if (boards.length > 0) {
     // Use the combined bounds of all boards
@@ -58,6 +63,32 @@ export function calculateSvgBounds(circuitJson: CircuitJson): TextureBounds {
   }
 
   return { minX, maxX, minY, maxY }
+}
+
+/**
+ * Get the bounds of each individual pcb_board element.
+ * Used to filter out cutout areas when applying textures.
+ */
+export function getIndividualBoardBounds(
+  circuitJson: CircuitJson,
+): BoardBounds[] {
+  const boards = (circuitJson as any[]).filter((el) => el.type === "pcb_board")
+  const bounds: BoardBounds[] = []
+
+  for (const board of boards) {
+    if (board.center && board.width && board.height) {
+      const hw = board.width / 2
+      const hh = board.height / 2
+      bounds.push({
+        minX: board.center.x - hw,
+        maxX: board.center.x + hw,
+        minY: board.center.y - hh,
+        maxY: board.center.y + hh,
+      })
+    }
+  }
+
+  return bounds
 }
 
 export async function renderBoardLayer(
@@ -179,9 +210,12 @@ export async function renderBoardTextures(
   top: string
   bottom: string
   bounds: TextureBounds
+  boardBounds: BoardBounds[]
 }> {
   // Calculate the bounds that circuit-to-svg will use
   const bounds = calculateSvgBounds(circuitJson)
+  // Get individual board bounds for filtering cutout areas
+  const boardBounds = getIndividualBoardBounds(circuitJson)
 
   const [top, bottom] = await Promise.all([
     renderBoardLayer(circuitJson, {
@@ -196,5 +230,5 @@ export async function renderBoardTextures(
     }),
   ])
 
-  return { top, bottom, bounds }
+  return { top, bottom, bounds, boardBounds }
 }
