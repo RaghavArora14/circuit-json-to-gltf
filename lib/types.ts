@@ -110,6 +110,11 @@ export interface Box3D {
     minY: number
     maxY: number
   }>
+  /**
+   * Color for panel frame areas (outside board bounds).
+   * Should match the texture background color.
+   */
+  panelFrameColor?: Color
   mesh?: STLMesh | OBJMesh
   meshUrl?: string
   meshType?: "stl" | "obj" | "glb"

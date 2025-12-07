@@ -417,13 +417,8 @@ export class GLTFBuilder {
       })
     }
 
-    // Side material (green) - also used for panel frame (top/bottom outside boards)
-    const allSolidGreenTriangles = [
-      ...sideTriangles,
-      ...topTrianglesSolid,
-      ...bottomTrianglesSolid,
-    ]
-    if (allSolidGreenTriangles.length > 0) {
+    // Side material (green) for board edges
+    if (sideTriangles.length > 0) {
       const sideMaterialIndex = this.addMaterial({
         name: `GreenSideMaterial_${this.materials.length}`,
         pbrMetallicRoughness: {
@@ -435,8 +430,37 @@ export class GLTFBuilder {
         doubleSided: true,
       })
       materials.push({
-        triangles: allSolidGreenTriangles,
+        triangles: sideTriangles,
         materialIndex: sideMaterialIndex,
+      })
+    }
+
+    // Panel frame material (top/bottom outside boards) - uses texture background color if available
+    const panelFrameTriangles = [...topTrianglesSolid, ...bottomTrianglesSolid]
+    if (panelFrameTriangles.length > 0) {
+      // Use panelFrameColor if provided, otherwise fall back to default green
+      let frameColor: [number, number, number, number] = [0.04, 0.16, 0.08, 1.0]
+      if (box.panelFrameColor) {
+        frameColor = this.parseColorString(
+          typeof box.panelFrameColor === "string"
+            ? box.panelFrameColor
+            : `rgba(${box.panelFrameColor[0]},${box.panelFrameColor[1]},${box.panelFrameColor[2]},${box.panelFrameColor[3]})`,
+        )
+      }
+
+      const frameMaterialIndex = this.addMaterial({
+        name: `PanelFrameMaterial_${this.materials.length}`,
+        pbrMetallicRoughness: {
+          baseColorFactor: frameColor,
+          metallicFactor: 0.0,
+          roughnessFactor: 0.8,
+        },
+        alphaMode: "OPAQUE",
+        doubleSided: true,
+      })
+      materials.push({
+        triangles: panelFrameTriangles,
+        materialIndex: frameMaterialIndex,
       })
     }
 

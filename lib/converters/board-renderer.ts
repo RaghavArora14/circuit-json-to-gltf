@@ -203,6 +203,9 @@ async function convertSvgToCanvasBrowser(
   })
 }
 
+// Default PCB background color used in textures
+export const PCB_BACKGROUND_COLOR = "#0F3812"
+
 export async function renderBoardTextures(
   circuitJson: CircuitJson,
   resolution = 1024,
@@ -211,6 +214,7 @@ export async function renderBoardTextures(
   bottom: string
   bounds: TextureBounds
   boardBounds: BoardBounds[]
+  backgroundColor: string
 }> {
   // Calculate the bounds that circuit-to-svg will use
   const bounds = calculateSvgBounds(circuitJson)
@@ -221,14 +225,14 @@ export async function renderBoardTextures(
     renderBoardLayer(circuitJson, {
       layer: "top",
       resolution,
-      backgroundColor: "#0F3812", // Green PCB background
+      backgroundColor: PCB_BACKGROUND_COLOR,
     }),
     renderBoardLayer(circuitJson, {
       layer: "bottom",
       resolution,
-      backgroundColor: "#0F3812", // Darker green for bottom layer
+      backgroundColor: PCB_BACKGROUND_COLOR,
     }),
   ])
 
-  return { top, bottom, bounds, boardBounds }
+  return { top, bottom, bounds, boardBounds, backgroundColor: PCB_BACKGROUND_COLOR }
 }

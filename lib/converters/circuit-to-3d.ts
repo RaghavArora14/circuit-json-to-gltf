@@ -126,6 +126,8 @@ export async function convertCircuitJsonTo3D(
         panelBox.textureBounds = textures.bounds
         // Pass individual board bounds for filtering cutout areas
         panelBox.boardBounds = textures.boardBounds
+        // Pass background color for panel frame areas
+        panelBox.panelFrameColor = textures.backgroundColor
       } catch (error) {
         console.warn("Failed to render panel textures:", error)
         // If texture rendering fails, use the fallback color
