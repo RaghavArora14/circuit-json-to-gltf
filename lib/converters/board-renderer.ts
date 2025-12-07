@@ -2,6 +2,64 @@ import type { CircuitJson } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import type { BoardRenderOptions } from "../types"
 
+export interface TextureBounds {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
+/**
+ * Calculate the bounds that circuit-to-svg uses for rendering.
+ * circuit-to-svg uses the bounds of pcb_board elements (not pcb_panel).
+ * If there's a pcb_panel but no pcb_board, it uses the panel bounds.
+ */
+export function calculateSvgBounds(circuitJson: CircuitJson): TextureBounds {
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+
+  // First, try to find pcb_board elements (circuit-to-svg prioritizes these)
+  const boards = (circuitJson as any[]).filter(
+    (el) => el.type === "pcb_board",
+  )
+
+  if (boards.length > 0) {
+    // Use the combined bounds of all boards
+    for (const board of boards) {
+      if (board.center && board.width && board.height) {
+        const hw = board.width / 2
+        const hh = board.height / 2
+        minX = Math.min(minX, board.center.x - hw)
+        minY = Math.min(minY, board.center.y - hh)
+        maxX = Math.max(maxX, board.center.x + hw)
+        maxY = Math.max(maxY, board.center.y + hh)
+      }
+    }
+  }
+
+  // If no boards found, try pcb_panel
+  if (!Number.isFinite(minX)) {
+    const panel = (circuitJson as any[]).find((el) => el.type === "pcb_panel")
+    if (panel && panel.center && panel.width && panel.height) {
+      const hw = panel.width / 2
+      const hh = panel.height / 2
+      minX = panel.center.x - hw
+      minY = panel.center.y - hh
+      maxX = panel.center.x + hw
+      maxY = panel.center.y + hh
+    }
+  }
+
+  // If still no bounds found, use defaults
+  if (!Number.isFinite(minX)) {
+    return { minX: -10, maxX: 10, minY: -10, maxY: 10 }
+  }
+
+  return { minX, maxX, minY, maxY }
+}
+
 export async function renderBoardLayer(
   circuitJson: CircuitJson,
   options: BoardRenderOptions,
@@ -120,7 +178,11 @@ export async function renderBoardTextures(
 ): Promise<{
   top: string
   bottom: string
+  bounds: TextureBounds
 }> {
+  // Calculate the bounds that circuit-to-svg will use
+  const bounds = calculateSvgBounds(circuitJson)
+
   const [top, bottom] = await Promise.all([
     renderBoardLayer(circuitJson, {
       layer: "top",
@@ -134,5 +196,5 @@ export async function renderBoardTextures(
     }),
   ])
 
-  return { top, bottom }
+  return { top, bottom, bounds }
 }

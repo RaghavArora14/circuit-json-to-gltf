@@ -88,6 +88,18 @@ export interface Box3D {
     left?: string
     right?: string
   }
+  /** 
+   * Texture bounds for proper UV mapping (in mm).
+   * These are the actual bounds that the texture represents,
+   * which may differ from the board dimensions if circuit-to-svg
+   * uses different bounds.
+   */
+  textureBounds?: {
+    minX: number
+    maxX: number
+    minY: number
+    maxY: number
+  }
   mesh?: STLMesh | OBJMesh
   meshUrl?: string
   meshType?: "stl" | "obj" | "glb"

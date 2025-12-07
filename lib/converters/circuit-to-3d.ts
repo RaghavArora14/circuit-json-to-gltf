@@ -122,6 +122,8 @@ export async function convertCircuitJsonTo3D(
           top: textures.top,
           bottom: textures.bottom,
         }
+        // Use the actual SVG bounds for UV mapping
+        panelBox.textureBounds = textures.bounds
       } catch (error) {
         console.warn("Failed to render panel textures:", error)
         // If texture rendering fails, use the fallback color
@@ -177,6 +179,8 @@ export async function convertCircuitJsonTo3D(
           top: textures.top,
           bottom: textures.bottom,
         }
+        // Use the actual SVG bounds for UV mapping
+        boardBox.textureBounds = textures.bounds
       } catch (error) {
         console.warn("Failed to render board textures:", error)
         // If texture rendering fails, use the fallback color

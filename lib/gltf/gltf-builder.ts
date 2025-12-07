@@ -369,29 +369,52 @@ export class GLTFBuilder {
 
     // Convert triangles to mesh data and create primitives
     const primitives: any[] = []
-    const bounds = getBounds([]) // We'll calculate bounds from triangles
 
-    // Calculate bounds from all triangles
-    let minX = Infinity,
-      minY = Infinity,
-      minZ = Infinity
-    let maxX = -Infinity,
-      maxY = -Infinity,
-      maxZ = -Infinity
+    // Use texture bounds for UV mapping if available
+    // The texture from circuit-to-svg is rendered based on the circuit's visible bounds,
+    // which may differ from the board/panel dimensions.
+    // 
+    // The mesh is in local coordinates after rotateX(-PI/2):
+    //   meshX = circuitX (relative to board center)
+    //   meshZ = -circuitY (relative to board center)
+    //
+    // textureBounds are in circuit coordinates (absolute, not relative to board center)
+    let texMinX: number
+    let texMaxX: number
+    let texMinY: number
+    let texMaxY: number
 
-    for (const triangle of box.mesh!.triangles) {
-      for (const v of triangle.vertices) {
-        minX = Math.min(minX, v.x)
-        minY = Math.min(minY, v.y)
-        minZ = Math.min(minZ, v.z)
-        maxX = Math.max(maxX, v.x)
-        maxY = Math.max(maxY, v.y)
-        maxZ = Math.max(maxZ, v.z)
+    if (box.textureBounds) {
+      // Use the actual bounds that circuit-to-svg rendered
+      texMinX = box.textureBounds.minX
+      texMaxX = box.textureBounds.maxX
+      texMinY = box.textureBounds.minY
+      texMaxY = box.textureBounds.maxY
+    } else {
+      // Fallback: calculate bounds from mesh triangles
+      // Convert mesh coordinates back to circuit coordinates
+      let minX = Infinity,
+        minZ = Infinity
+      let maxX = -Infinity,
+        maxZ = -Infinity
+
+      for (const triangle of box.mesh!.triangles) {
+        for (const v of triangle.vertices) {
+          minX = Math.min(minX, v.x)
+          minZ = Math.min(minZ, v.z)
+          maxX = Math.max(maxX, v.x)
+          maxZ = Math.max(maxZ, v.z)
+        }
       }
-    }
 
-    const sizeX = maxX - minX
-    const sizeZ = maxZ - minZ
+      // Mesh is centered at origin, so add box.center to get circuit coordinates
+      // meshX = circuitX - boardCenterX, so circuitX = meshX + boardCenterX
+      // meshZ = -(circuitY - boardCenterY), so circuitY = -meshZ + boardCenterY
+      texMinX = minX + box.center.x
+      texMaxX = maxX + box.center.x
+      texMinY = -maxZ + box.center.z  // Note: min/max swap due to negation
+      texMaxY = -minZ + box.center.z
+    }
 
     for (const { triangles, materialIndex } of materials) {
       const positions: number[] = []
@@ -401,14 +424,38 @@ export class GLTFBuilder {
       let vertexIndex = 0
 
       for (const triangle of triangles) {
-        for (const v of triangle.vertices) {
-          positions.push(v.x, v.y, v.z)
+        for (const vert of triangle.vertices) {
+          positions.push(vert.x, vert.y, vert.z)
           normals.push(triangle.normal.x, triangle.normal.y, triangle.normal.z)
 
-          // Generate UV coordinates based on X/Z position for top/bottom faces
-          const u = sizeX > 0 ? (v.x - minX) / sizeX : 0.5
-          const v_coord = sizeZ > 0 ? (v.z - minZ) / sizeZ : 0.5
-          texcoords.push(u, 1 - v_coord) // Flip V coordinate
+          // Generate UV coordinates based on mesh position
+          // 
+          // Mesh coordinates (after rotateX(-PI/2) in pcb-board-geometry):
+          //   meshX = circuitX - boardCenterX (mesh is centered at origin)
+          //   meshZ = -(circuitY - boardCenterY)
+          //
+          // Convert mesh position to circuit coordinates:
+          //   circuitX = meshX + boardCenterX = meshX + box.center.x
+          //   circuitY = -meshZ + boardCenterY = -meshZ + box.center.z
+          //
+          // SVG texture from circuit-to-svg:
+          //   SVG X increases left to right (circuit X direction)
+          //   SVG Y increases top to bottom (opposite of circuit Y)
+          //
+          // UV coordinates (0,0 = top-left, 1,1 = bottom-right):
+          //   u = (circuitX - texMinX) / (texMaxX - texMinX)
+          //   v = (texMaxY - circuitY) / (texMaxY - texMinY)
+          
+          const circuitX = vert.x + box.center.x
+          const circuitY = -vert.z + box.center.z
+          
+          const texWidth = texMaxX - texMinX
+          const texHeight = texMaxY - texMinY
+          
+          const u = texWidth > 0 ? (circuitX - texMinX) / texWidth : 0.5
+          // Flip V to match SVG coordinate system (Y increases downward in SVG)
+          const v_coord = texHeight > 0 ? (circuitY - texMinY) / texHeight : 0.5
+          texcoords.push(u, v_coord)
         }
 
         indices.push(vertexIndex, vertexIndex + 1, vertexIndex + 2)
