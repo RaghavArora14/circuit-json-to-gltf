@@ -30,6 +30,7 @@ import {
   type MeshData,
   type FaceMeshData,
 } from "./geometry"
+import { type Bounds, isPointInsideAnyBounds } from "../utils/bounds"
 
 export class GLTFBuilder {
   private gltf: GLTF
@@ -276,26 +277,7 @@ export class GLTFBuilder {
     box: Box3D,
     defaultMaterialIndex: number,
   ): Promise<void> {
-        // Only apply board bounds filtering for panels (multiple boards)
-
     const hasMultipleBoards = box.boardBounds && box.boardBounds.length > 1
-
-    const isInsideAnyBoard = (circuitX: number, circuitY: number): boolean => {
-      if (!hasMultipleBoards) {
-        return true
-      }
-      for (const bounds of box.boardBounds!) {
-        if (
-          circuitX >= bounds.minX &&
-          circuitX <= bounds.maxX &&
-          circuitY >= bounds.minY &&
-          circuitY <= bounds.maxY
-        ) {
-          return true
-        }
-      }
-      return false
-    }
 
     const isTriangleInsideBoard = (
       triangle: NonNullable<typeof box.mesh>["triangles"][0],
@@ -314,10 +296,10 @@ export class GLTFBuilder {
           triangle.vertices[2].z) /
         3
 
-      const circuitX = centerX + box.center.x
-      const circuitY = -centerZ + box.center.z
+      const pcbX = centerX + box.center.x
+      const pcbY = -centerZ + box.center.z
 
-      return isInsideAnyBoard(circuitX, circuitY)
+      return isPointInsideAnyBounds(pcbX, pcbY, box.boardBounds!)
     }
     const topTrianglesTextured: NonNullable<typeof box.mesh>["triangles"] = []
     const topTrianglesSolid: NonNullable<typeof box.mesh>["triangles"] = []
@@ -326,7 +308,6 @@ export class GLTFBuilder {
     const bottomTrianglesSolid: NonNullable<typeof box.mesh>["triangles"] = []
     const sideTriangles: NonNullable<typeof box.mesh>["triangles"] = []
 
-    // Y-normal threshold for determining top/bottom face orientation
     const FACE_ORIENTATION_THRESHOLD = 0.8
 
     for (const triangle of box.mesh!.triangles) {
@@ -337,7 +318,8 @@ export class GLTFBuilder {
           if (insideBoard) {
             topTrianglesTextured.push(triangle)
           } else {
-            topTrianglesSolid.push(triangle)           }
+            topTrianglesSolid.push(triangle)
+          }
         } else {
           if (insideBoard) {
             bottomTrianglesTextured.push(triangle)
@@ -389,9 +371,6 @@ export class GLTFBuilder {
       const bottomMaterialIndex = this.addMaterial({
         name: `BottomMaterial_${this.materials.length}`,
         pbrMetallicRoughness: {
-          // baseColorFactor: [     0.04,
-          //   0.16,
-          //   0.08, 1.0],
           metallicFactor: 0.0,
           roughnessFactor: 0.8,
         },
@@ -503,14 +482,14 @@ export class GLTFBuilder {
           positions.push(vert.x, vert.y, vert.z)
           normals.push(triangle.normal.x, triangle.normal.y, triangle.normal.z)
 
-          const circuitX = vert.x + box.center.x
-          const circuitY = -vert.z + box.center.z
+          const pcbX = vert.x + box.center.x
+          const pcbY = -vert.z + box.center.z
 
           const texWidth = texMaxX - texMinX
           const texHeight = texMaxY - texMinY
 
-          const uCoord = texWidth > 0 ? (circuitX - texMinX) / texWidth : 0.5
-          const vCoord = texHeight > 0 ? (circuitY - texMinY) / texHeight : 0.5
+          const uCoord = texWidth > 0 ? (pcbX - texMinX) / texWidth : 0.5
+          const vCoord = texHeight > 0 ? (pcbY - texMinY) / texHeight : 0.5
           texcoords.push(uCoord, vCoord)
         }
 

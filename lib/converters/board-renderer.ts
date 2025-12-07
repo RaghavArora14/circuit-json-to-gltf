@@ -1,50 +1,15 @@
-import type {
-  AnyCircuitElement,
-  CircuitJson,
-  PcbBoard,
-  PcbPanel,
-} from "circuit-json"
+import type { CircuitJson } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import type { BoardRenderOptions } from "../types"
+import {
+  type Bounds,
+  isPcbBoard,
+  isPcbPanel,
+  getBoundsFromElement,
+} from "../utils/bounds"
 
-export interface TextureBounds {
-  minX: number
-  maxX: number
-  minY: number
-  maxY: number
-}
-
-export interface BoardBounds {
-  minX: number
-  maxX: number
-  minY: number
-  maxY: number
-}
-
-function isPcbBoard(el: AnyCircuitElement): el is PcbBoard {
-  return el.type === "pcb_board"
-}
-
-function isPcbPanel(el: AnyCircuitElement): el is PcbPanel {
-  return el.type === "pcb_panel"
-}
-
-// Calculate bounds from a board or panel element 
-function getBoundsFromElement(element: {
-  center: { x: number; y: number }
-  width: number
-  height: number
-}): BoardBounds {
-  const halfWidth = element.width / 2
-  const halfHeight = element.height / 2
-  return {
-    minX: element.center.x - halfWidth,
-    maxX: element.center.x + halfWidth,
-    minY: element.center.y - halfHeight,
-    maxY: element.center.y + halfHeight,
-  }
-}
-
+export type TextureBounds = Bounds
+export type BoardBounds = Bounds
 
 export function calculateSvgBounds(circuitJson: CircuitJson): TextureBounds {
   let minX = Infinity
