@@ -21,17 +21,15 @@ export interface BoardBounds {
   maxY: number
 }
 
-/** Type guard for PcbBoard elements */
 function isPcbBoard(el: AnyCircuitElement): el is PcbBoard {
   return el.type === "pcb_board"
 }
 
-/** Type guard for PcbPanel elements */
 function isPcbPanel(el: AnyCircuitElement): el is PcbPanel {
   return el.type === "pcb_panel"
 }
 
-/** Calculate bounds from a board or panel element */
+// Calculate bounds from a board or panel element 
 function getBoundsFromElement(element: {
   center: { x: number; y: number }
   width: number
@@ -47,18 +45,13 @@ function getBoundsFromElement(element: {
   }
 }
 
-/**
- * Calculate the bounds that circuit-to-svg uses for rendering.
- * circuit-to-svg uses the bounds of pcb_board elements (not pcb_panel).
- * If there's a pcb_panel but no pcb_board, it uses the panel bounds.
- */
+
 export function calculateSvgBounds(circuitJson: CircuitJson): TextureBounds {
   let minX = Infinity
   let minY = Infinity
   let maxX = -Infinity
   let maxY = -Infinity
 
-  // First, try to find pcb_board elements (circuit-to-svg prioritizes these)
   const boards = circuitJson.filter(isPcbBoard)
 
   if (boards.length > 0) {
@@ -95,10 +88,6 @@ export function calculateSvgBounds(circuitJson: CircuitJson): TextureBounds {
   return { minX, maxX, minY, maxY }
 }
 
-/**
- * Get the bounds of each individual pcb_board element.
- * Used to filter out cutout areas when applying textures.
- */
 export function getIndividualBoardBounds(
   circuitJson: CircuitJson,
 ): BoardBounds[] {
@@ -218,7 +207,6 @@ async function convertSvgToCanvasBrowser(
   })
 }
 
-// Default PCB background color used in textures
 export const PCB_BACKGROUND_COLOR = "#0F3812"
 
 export async function renderBoardTextures(

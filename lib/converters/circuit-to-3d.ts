@@ -122,9 +122,7 @@ export async function convertCircuitJsonTo3D(
           top: textures.top,
           bottom: textures.bottom,
         }
-        // Use the actual SVG bounds for UV mapping
         panelBox.textureBounds = textures.bounds
-        // Pass individual board bounds for filtering cutout areas
         panelBox.boardBounds = textures.boardBounds
         // Pass background color for panel frame areas
         panelBox.panelFrameColor = textures.backgroundColor
@@ -183,13 +181,10 @@ export async function convertCircuitJsonTo3D(
           top: textures.top,
           bottom: textures.bottom,
         }
-        // Use the actual SVG bounds for UV mapping
         boardBox.textureBounds = textures.bounds
-        // Pass individual board bounds for filtering cutout areas
         boardBox.boardBounds = textures.boardBounds
       } catch (error) {
         console.warn("Failed to render board textures:", error)
-        // If texture rendering fails, use the fallback color
         boardBox.color = pcbColor
       }
     } else {

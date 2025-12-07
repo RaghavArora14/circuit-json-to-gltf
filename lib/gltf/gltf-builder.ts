@@ -276,8 +276,8 @@ export class GLTFBuilder {
     box: Box3D,
     defaultMaterialIndex: number,
   ): Promise<void> {
-    // Only apply board bounds filtering for panels (multiple boards)
-    // For single boards, all top/bottom triangles get the texture
+        // Only apply board bounds filtering for panels (multiple boards)
+
     const hasMultipleBoards = box.boardBounds && box.boardBounds.length > 1
 
     const isInsideAnyBoard = (circuitX: number, circuitY: number): boolean => {
@@ -337,13 +337,12 @@ export class GLTFBuilder {
           if (insideBoard) {
             topTrianglesTextured.push(triangle)
           } else {
-            topTrianglesSolid.push(triangle) // Panel frame - solid green
-          }
+            topTrianglesSolid.push(triangle)           }
         } else {
           if (insideBoard) {
             bottomTrianglesTextured.push(triangle)
           } else {
-            bottomTrianglesSolid.push(triangle) // Panel frame - solid green
+            bottomTrianglesSolid.push(triangle)
           }
         }
       } else {
