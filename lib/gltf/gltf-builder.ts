@@ -30,6 +30,7 @@ import {
   type MeshData,
   type FaceMeshData,
 } from "./geometry"
+import { type Bounds, isTriangleInsideAnyBoardBounds } from "../utils/bounds"
 
 export class GLTFBuilder {
   private gltf: GLTF
@@ -265,27 +266,45 @@ export class GLTFBuilder {
     box: Box3D,
     defaultMaterialIndex: number,
   ): Promise<void> {
-    // Separate mesh triangles by face orientation
-    const topTriangles: NonNullable<typeof box.mesh>["triangles"] = []
-    const bottomTriangles: NonNullable<typeof box.mesh>["triangles"] = []
+    const hasMultipleBoards = box.boardBounds && box.boardBounds.length > 1
+    const boxCenter = { x: box.center.x, z: box.center.z }
+
+    const topTrianglesTextured: NonNullable<typeof box.mesh>["triangles"] = []
+    const topTrianglesSolid: NonNullable<typeof box.mesh>["triangles"] = []
+    const bottomTrianglesTextured: NonNullable<typeof box.mesh>["triangles"] =
+      []
+    const bottomTrianglesSolid: NonNullable<typeof box.mesh>["triangles"] = []
     const sideTriangles: NonNullable<typeof box.mesh>["triangles"] = []
 
-    const yThreshold = 0.8 // Faces with normal Y > threshold are "top"
+    const FACE_ORIENTATION_THRESHOLD = 0.8
 
     for (const triangle of box.mesh!.triangles) {
-      const ny = Math.abs(triangle.normal.y)
-      if (ny > yThreshold) {
+      const absNormalY = Math.abs(triangle.normal.y)
+      if (absNormalY > FACE_ORIENTATION_THRESHOLD) {
+        const insideBoard =
+          !hasMultipleBoards ||
+          isTriangleInsideAnyBoardBounds(triangle, boxCenter, box.boardBounds!)
         if (triangle.normal.y > 0) {
-          topTriangles.push(triangle)
+          if (insideBoard) {
+            topTrianglesTextured.push(triangle)
+          } else {
+            topTrianglesSolid.push(triangle)
+          }
         } else {
-          bottomTriangles.push(triangle)
+          if (insideBoard) {
+            bottomTrianglesTextured.push(triangle)
+          } else {
+            bottomTrianglesSolid.push(triangle)
+          }
         }
       } else {
         sideTriangles.push(triangle)
       }
     }
 
-    // Create materials
+    const topTriangles = topTrianglesTextured
+    const bottomTriangles = bottomTrianglesTextured
+
     const materials: {
       triangles: NonNullable<typeof box.mesh>["triangles"]
       materialIndex: number
@@ -319,14 +338,10 @@ export class GLTFBuilder {
       })
     }
 
-    // Bottom material with texture
     if (bottomTriangles.length > 0 && box.texture?.bottom) {
       const bottomMaterialIndex = this.addMaterial({
         name: `BottomMaterial_${this.materials.length}`,
         pbrMetallicRoughness: {
-          // baseColorFactor: [     0.04,
-          //   0.16,
-          //   0.08, 1.0],
           metallicFactor: 0.0,
           roughnessFactor: 0.8,
         },
@@ -349,7 +364,6 @@ export class GLTFBuilder {
       })
     }
 
-    // Side material (green)
     if (sideTriangles.length > 0) {
       const sideMaterialIndex = this.addMaterial({
         name: `GreenSideMaterial_${this.materials.length}`,
@@ -367,31 +381,65 @@ export class GLTFBuilder {
       })
     }
 
-    // Convert triangles to mesh data and create primitives
-    const primitives: any[] = []
-    const bounds = getBounds([]) // We'll calculate bounds from triangles
-
-    // Calculate bounds from all triangles
-    let minX = Infinity,
-      minY = Infinity,
-      minZ = Infinity
-    let maxX = -Infinity,
-      maxY = -Infinity,
-      maxZ = -Infinity
-
-    for (const triangle of box.mesh!.triangles) {
-      for (const v of triangle.vertices) {
-        minX = Math.min(minX, v.x)
-        minY = Math.min(minY, v.y)
-        minZ = Math.min(minZ, v.z)
-        maxX = Math.max(maxX, v.x)
-        maxY = Math.max(maxY, v.y)
-        maxZ = Math.max(maxZ, v.z)
+    const panelFrameTriangles = [...topTrianglesSolid, ...bottomTrianglesSolid]
+    if (panelFrameTriangles.length > 0) {
+      let frameColor: [number, number, number, number] = [0.04, 0.16, 0.08, 1.0]
+      if (box.panelFrameColor) {
+        frameColor = this.parseColorString(
+          typeof box.panelFrameColor === "string"
+            ? box.panelFrameColor
+            : `rgba(${box.panelFrameColor[0]},${box.panelFrameColor[1]},${box.panelFrameColor[2]},${box.panelFrameColor[3]})`,
+        )
       }
+
+      const frameMaterialIndex = this.addMaterial({
+        name: `PanelFrameMaterial_${this.materials.length}`,
+        pbrMetallicRoughness: {
+          baseColorFactor: frameColor,
+          metallicFactor: 0.0,
+          roughnessFactor: 0.8,
+        },
+        alphaMode: "OPAQUE",
+        doubleSided: true,
+      })
+      materials.push({
+        triangles: panelFrameTriangles,
+        materialIndex: frameMaterialIndex,
+      })
     }
 
-    const sizeX = maxX - minX
-    const sizeZ = maxZ - minZ
+    const primitives: any[] = []
+
+    let texMinX: number
+    let texMaxX: number
+    let texMinY: number
+    let texMaxY: number
+
+    if (box.textureBounds) {
+      texMinX = box.textureBounds.minX
+      texMaxX = box.textureBounds.maxX
+      texMinY = box.textureBounds.minY
+      texMaxY = box.textureBounds.maxY
+    } else {
+      let minX = Infinity,
+        minZ = Infinity
+      let maxX = -Infinity,
+        maxZ = -Infinity
+
+      for (const triangle of box.mesh!.triangles) {
+        for (const v of triangle.vertices) {
+          minX = Math.min(minX, v.x)
+          minZ = Math.min(minZ, v.z)
+          maxX = Math.max(maxX, v.x)
+          maxZ = Math.max(maxZ, v.z)
+        }
+      }
+
+      texMinX = minX + box.center.x
+      texMaxX = maxX + box.center.x
+      texMinY = -maxZ + box.center.z
+      texMaxY = -minZ + box.center.z
+    }
 
     for (const { triangles, materialIndex } of materials) {
       const positions: number[] = []
@@ -401,14 +449,19 @@ export class GLTFBuilder {
       let vertexIndex = 0
 
       for (const triangle of triangles) {
-        for (const v of triangle.vertices) {
-          positions.push(v.x, v.y, v.z)
+        for (const vert of triangle.vertices) {
+          positions.push(vert.x, vert.y, vert.z)
           normals.push(triangle.normal.x, triangle.normal.y, triangle.normal.z)
 
-          // Generate UV coordinates based on X/Z position for top/bottom faces
-          const u = sizeX > 0 ? (v.x - minX) / sizeX : 0.5
-          const v_coord = sizeZ > 0 ? (v.z - minZ) / sizeZ : 0.5
-          texcoords.push(u, 1 - v_coord) // Flip V coordinate
+          const pcbX = vert.x + box.center.x
+          const pcbY = -vert.z + box.center.z
+
+          const texWidth = texMaxX - texMinX
+          const texHeight = texMaxY - texMinY
+
+          const uCoord = texWidth > 0 ? (pcbX - texMinX) / texWidth : 0.5
+          const vCoord = texHeight > 0 ? (pcbY - texMinY) / texHeight : 0.5
+          texcoords.push(uCoord, vCoord)
         }
 
         indices.push(vertexIndex, vertexIndex + 1, vertexIndex + 2)

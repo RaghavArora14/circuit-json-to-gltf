@@ -122,6 +122,10 @@ export async function convertCircuitJsonTo3D(
           top: textures.top,
           bottom: textures.bottom,
         }
+        panelBox.textureBounds = textures.bounds
+        panelBox.boardBounds = textures.boardBounds
+        // Pass background color for panel frame areas
+        panelBox.panelFrameColor = textures.backgroundColor
       } catch (error) {
         console.warn("Failed to render panel textures:", error)
         // If texture rendering fails, use the fallback color
@@ -177,13 +181,13 @@ export async function convertCircuitJsonTo3D(
           top: textures.top,
           bottom: textures.bottom,
         }
+        boardBox.textureBounds = textures.bounds
+        boardBox.boardBounds = textures.boardBounds
       } catch (error) {
         console.warn("Failed to render board textures:", error)
-        // If texture rendering fails, use the fallback color
         boardBox.color = pcbColor
       }
     } else {
-      // No textures requested, use solid color
       boardBox.color = pcbColor
     }
 

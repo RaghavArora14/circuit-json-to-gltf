@@ -1,6 +1,14 @@
 import type { CircuitJson } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import type { BoardRenderOptions } from "../types"
+import {
+  type Bounds,
+  getCircuitJsonTextureBounds,
+  getIndividualBoardBounds,
+} from "../utils/bounds"
+
+export type TextureBounds = Bounds
+export type BoardBounds = Bounds
 
 export async function renderBoardLayer(
   circuitJson: CircuitJson,
@@ -37,20 +45,14 @@ export async function renderBoardLayer(
     },
   })
 
-  // Use the SVG without transformation
-  const finalSvg = svg
-
-  // Use the best SVG-to-PNG conversion method for the platform
-  return await convertSvgToPng(finalSvg, resolution, backgroundColor)
+  return await convertSvgToPng(svg, resolution, backgroundColor)
 }
 
-// Intelligent SVG to PNG conversion based on platform
 async function convertSvgToPng(
   svgString: string,
   resolution: number,
   backgroundColor: string,
 ): Promise<string> {
-  // Check if we're in a browser environment
   if (typeof window !== "undefined" && typeof document !== "undefined") {
     const { svgToPngDataUrl } = await import("../utils/svg-to-png-browser")
 
@@ -58,22 +60,20 @@ async function convertSvgToPng(
       width: resolution,
       background: backgroundColor,
     })
-  } else {
-    // Node.js/Bun: Use native Resvg for high-quality rendering
-    try {
-      const { svgToPngDataUrl } = await import("../utils/svg-to-png")
-      return await svgToPngDataUrl(svgString, {
-        width: resolution,
-        background: backgroundColor,
-      })
-    } catch (error) {
-      console.warn(
-        "Failed to load native svg-to-png, falling back to browser method:",
-        error,
-      )
-      // Fallback to canvas method if native import fails
-      return convertSvgToCanvasBrowser(svgString, resolution, backgroundColor)
-    }
+  }
+
+  try {
+    const { svgToPngDataUrl } = await import("../utils/svg-to-png")
+    return await svgToPngDataUrl(svgString, {
+      width: resolution,
+      background: backgroundColor,
+    })
+  } catch (error) {
+    console.warn(
+      "Failed to load native svg-to-png, falling back to browser method:",
+      error,
+    )
+    return convertSvgToCanvasBrowser(svgString, resolution, backgroundColor)
   }
 }
 
@@ -89,14 +89,11 @@ async function convertSvgToCanvasBrowser(
     canvas.height = resolution
     const ctx = canvas.getContext("2d")!
 
-    // Fill with background color first
     ctx.fillStyle = backgroundColor
     ctx.fillRect(0, 0, resolution, resolution)
 
-    // Create SVG data URL
     const svgDataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`
 
-    // Create image from SVG
     const img = new Image()
     img.onload = () => {
       try {
@@ -114,25 +111,39 @@ async function convertSvgToCanvasBrowser(
   })
 }
 
+export const PCB_BACKGROUND_COLOR = "#0F3812"
+
 export async function renderBoardTextures(
   circuitJson: CircuitJson,
   resolution = 1024,
 ): Promise<{
   top: string
   bottom: string
+  bounds: TextureBounds
+  boardBounds: BoardBounds[]
+  backgroundColor: string
 }> {
+  const bounds = getCircuitJsonTextureBounds(circuitJson)
+  const boardBounds = getIndividualBoardBounds(circuitJson)
+
   const [top, bottom] = await Promise.all([
     renderBoardLayer(circuitJson, {
       layer: "top",
       resolution,
-      backgroundColor: "#0F3812", // Green PCB background
+      backgroundColor: PCB_BACKGROUND_COLOR,
     }),
     renderBoardLayer(circuitJson, {
       layer: "bottom",
       resolution,
-      backgroundColor: "#0F3812", // Darker green for bottom layer
+      backgroundColor: PCB_BACKGROUND_COLOR,
     }),
   ])
 
-  return { top, bottom }
+  return {
+    top,
+    bottom,
+    bounds,
+    boardBounds,
+    backgroundColor: PCB_BACKGROUND_COLOR,
+  }
 }
