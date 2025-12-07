@@ -234,5 +234,11 @@ export async function renderBoardTextures(
     }),
   ])
 
-  return { top, bottom, bounds, boardBounds, backgroundColor: PCB_BACKGROUND_COLOR }
+  return {
+    top,
+    bottom,
+    bounds,
+    boardBounds,
+    backgroundColor: PCB_BACKGROUND_COLOR,
+  }
 }
