@@ -280,10 +280,9 @@ export class GLTFBuilder {
     // For single boards, all top/bottom triangles get the texture
     const hasMultipleBoards = box.boardBounds && box.boardBounds.length > 1
 
-    // Helper to check if a circuit coordinate is inside any board bounds
     const isInsideAnyBoard = (circuitX: number, circuitY: number): boolean => {
       if (!hasMultipleBoards) {
-        return true // Single board - all points are valid
+        return true
       }
       for (const bounds of box.boardBounds!) {
         if (
@@ -298,14 +297,12 @@ export class GLTFBuilder {
       return false
     }
 
-    // Helper to check if a triangle's center is inside any board
     const isTriangleInsideBoard = (
       triangle: NonNullable<typeof box.mesh>["triangles"][0],
     ): boolean => {
       if (!hasMultipleBoards) {
-        return true // Single board - all triangles are valid
+        return true
       }
-      // Calculate triangle center in mesh coordinates
       const centerX =
         (triangle.vertices[0].x +
           triangle.vertices[1].x +
@@ -317,18 +314,11 @@ export class GLTFBuilder {
           triangle.vertices[2].z) /
         3
 
-      // Convert to circuit coordinates
-      // meshX = circuitX - boardCenterX, so circuitX = meshX + boardCenterX
-      // meshZ = -(circuitY - boardCenterY), so circuitY = -meshZ + boardCenterY
       const circuitX = centerX + box.center.x
       const circuitY = -centerZ + box.center.z
 
       return isInsideAnyBoard(circuitX, circuitY)
     }
-
-    // Separate mesh triangles by face orientation
-    // For panels: top/bottom triangles inside boards get texture, outside get solid green
-    // For single boards: all top/bottom triangles get texture
     const topTrianglesTextured: NonNullable<typeof box.mesh>["triangles"] = []
     const topTrianglesSolid: NonNullable<typeof box.mesh>["triangles"] = []
     const bottomTrianglesTextured: NonNullable<typeof box.mesh>["triangles"] =
@@ -361,17 +351,14 @@ export class GLTFBuilder {
       }
     }
 
-    // Combine textured triangles for UV mapping
     const topTriangles = topTrianglesTextured
     const bottomTriangles = bottomTrianglesTextured
 
-    // Create materials
     const materials: {
       triangles: NonNullable<typeof box.mesh>["triangles"]
       materialIndex: number
     }[] = []
 
-    // Top material with texture
     if (topTriangles.length > 0 && box.texture?.top) {
       const topMaterialIndex = this.addMaterial({
         name: `TopMaterial_${this.materials.length}`,
@@ -399,7 +386,6 @@ export class GLTFBuilder {
       })
     }
 
-    // Bottom material with texture
     if (bottomTriangles.length > 0 && box.texture?.bottom) {
       const bottomMaterialIndex = this.addMaterial({
         name: `BottomMaterial_${this.materials.length}`,
@@ -429,7 +415,6 @@ export class GLTFBuilder {
       })
     }
 
-    // Side material (green) for board edges
     if (sideTriangles.length > 0) {
       const sideMaterialIndex = this.addMaterial({
         name: `GreenSideMaterial_${this.materials.length}`,
@@ -447,10 +432,8 @@ export class GLTFBuilder {
       })
     }
 
-    // Panel frame material (top/bottom outside boards) - uses texture background color if available
     const panelFrameTriangles = [...topTrianglesSolid, ...bottomTrianglesSolid]
     if (panelFrameTriangles.length > 0) {
-      // Use panelFrameColor if provided, otherwise fall back to default green
       let frameColor: [number, number, number, number] = [0.04, 0.16, 0.08, 1.0]
       if (box.panelFrameColor) {
         frameColor = this.parseColorString(
@@ -476,32 +459,19 @@ export class GLTFBuilder {
       })
     }
 
-    // Convert triangles to mesh data and create primitives
     const primitives: any[] = []
 
-    // Use texture bounds for UV mapping if available
-    // The texture from circuit-to-svg is rendered based on the circuit's visible bounds,
-    // which may differ from the board/panel dimensions.
-    //
-    // The mesh is in local coordinates after rotateX(-PI/2):
-    //   meshX = circuitX (relative to board center)
-    //   meshZ = -circuitY (relative to board center)
-    //
-    // textureBounds are in circuit coordinates (absolute, not relative to board center)
     let texMinX: number
     let texMaxX: number
     let texMinY: number
     let texMaxY: number
 
     if (box.textureBounds) {
-      // Use the actual bounds that circuit-to-svg rendered
       texMinX = box.textureBounds.minX
       texMaxX = box.textureBounds.maxX
       texMinY = box.textureBounds.minY
       texMaxY = box.textureBounds.maxY
     } else {
-      // Fallback: calculate bounds from mesh triangles
-      // Convert mesh coordinates back to circuit coordinates
       let minX = Infinity,
         minZ = Infinity
       let maxX = -Infinity,
@@ -516,12 +486,9 @@ export class GLTFBuilder {
         }
       }
 
-      // Mesh is centered at origin, so add box.center to get circuit coordinates
-      // meshX = circuitX - boardCenterX, so circuitX = meshX + boardCenterX
-      // meshZ = -(circuitY - boardCenterY), so circuitY = -meshZ + boardCenterY
       texMinX = minX + box.center.x
       texMaxX = maxX + box.center.x
-      texMinY = -maxZ + box.center.z // Note: min/max swap due to negation
+      texMinY = -maxZ + box.center.z
       texMaxY = -minZ + box.center.z
     }
 
@@ -537,24 +504,6 @@ export class GLTFBuilder {
           positions.push(vert.x, vert.y, vert.z)
           normals.push(triangle.normal.x, triangle.normal.y, triangle.normal.z)
 
-          // Generate UV coordinates based on mesh position
-          //
-          // Mesh coordinates (after rotateX(-PI/2) in pcb-board-geometry):
-          //   meshX = circuitX - boardCenterX (mesh is centered at origin)
-          //   meshZ = -(circuitY - boardCenterY)
-          //
-          // Convert mesh position to circuit coordinates:
-          //   circuitX = meshX + boardCenterX = meshX + box.center.x
-          //   circuitY = -meshZ + boardCenterY = -meshZ + box.center.z
-          //
-          // SVG texture from circuit-to-svg:
-          //   SVG X increases left to right (circuit X direction)
-          //   SVG Y increases top to bottom (opposite of circuit Y)
-          //
-          // UV coordinates (0,0 = top-left, 1,1 = bottom-right):
-          //   u = (circuitX - texMinX) / (texMaxX - texMinX)
-          //   v = (texMaxY - circuitY) / (texMaxY - texMinY)
-
           const circuitX = vert.x + box.center.x
           const circuitY = -vert.z + box.center.z
 
@@ -562,7 +511,6 @@ export class GLTFBuilder {
           const texHeight = texMaxY - texMinY
 
           const uCoord = texWidth > 0 ? (circuitX - texMinX) / texWidth : 0.5
-          // Flip V to match SVG coordinate system (Y increases downward in SVG)
           const vCoord = texHeight > 0 ? (circuitY - texMinY) / texHeight : 0.5
           texcoords.push(uCoord, vCoord)
         }
