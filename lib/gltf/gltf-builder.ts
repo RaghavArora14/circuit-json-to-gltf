@@ -336,11 +336,12 @@ export class GLTFBuilder {
     const bottomTrianglesSolid: NonNullable<typeof box.mesh>["triangles"] = []
     const sideTriangles: NonNullable<typeof box.mesh>["triangles"] = []
 
-    const yThreshold = 0.8 // Faces with normal Y > threshold are "top"
+    // Y-normal threshold for determining top/bottom face orientation
+    const FACE_ORIENTATION_THRESHOLD = 0.8
 
     for (const triangle of box.mesh!.triangles) {
-      const ny = Math.abs(triangle.normal.y)
-      if (ny > yThreshold) {
+      const absNormalY = Math.abs(triangle.normal.y)
+      if (absNormalY > FACE_ORIENTATION_THRESHOLD) {
         const insideBoard = isTriangleInsideBoard(triangle)
         if (triangle.normal.y > 0) {
           if (insideBoard) {
@@ -560,10 +561,10 @@ export class GLTFBuilder {
           const texWidth = texMaxX - texMinX
           const texHeight = texMaxY - texMinY
 
-          const u = texWidth > 0 ? (circuitX - texMinX) / texWidth : 0.5
+          const uCoord = texWidth > 0 ? (circuitX - texMinX) / texWidth : 0.5
           // Flip V to match SVG coordinate system (Y increases downward in SVG)
-          const v_coord = texHeight > 0 ? (circuitY - texMinY) / texHeight : 0.5
-          texcoords.push(u, v_coord)
+          const vCoord = texHeight > 0 ? (circuitY - texMinY) / texHeight : 0.5
+          texcoords.push(uCoord, vCoord)
         }
 
         indices.push(vertexIndex, vertexIndex + 1, vertexIndex + 2)

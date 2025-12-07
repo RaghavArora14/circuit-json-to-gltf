@@ -1,4 +1,9 @@
-import type { CircuitJson } from "circuit-json"
+import type {
+  AnyCircuitElement,
+  CircuitJson,
+  PcbBoard,
+  PcbPanel,
+} from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import type { BoardRenderOptions } from "../types"
 
@@ -16,6 +21,32 @@ export interface BoardBounds {
   maxY: number
 }
 
+/** Type guard for PcbBoard elements */
+function isPcbBoard(el: AnyCircuitElement): el is PcbBoard {
+  return el.type === "pcb_board"
+}
+
+/** Type guard for PcbPanel elements */
+function isPcbPanel(el: AnyCircuitElement): el is PcbPanel {
+  return el.type === "pcb_panel"
+}
+
+/** Calculate bounds from a board or panel element */
+function getBoundsFromElement(element: {
+  center: { x: number; y: number }
+  width: number
+  height: number
+}): BoardBounds {
+  const halfWidth = element.width / 2
+  const halfHeight = element.height / 2
+  return {
+    minX: element.center.x - halfWidth,
+    maxX: element.center.x + halfWidth,
+    minY: element.center.y - halfHeight,
+    maxY: element.center.y + halfHeight,
+  }
+}
+
 /**
  * Calculate the bounds that circuit-to-svg uses for rendering.
  * circuit-to-svg uses the bounds of pcb_board elements (not pcb_panel).
@@ -28,32 +59,34 @@ export function calculateSvgBounds(circuitJson: CircuitJson): TextureBounds {
   let maxY = -Infinity
 
   // First, try to find pcb_board elements (circuit-to-svg prioritizes these)
-  const boards = (circuitJson as any[]).filter((el) => el.type === "pcb_board")
+  const boards = circuitJson.filter(isPcbBoard)
 
   if (boards.length > 0) {
     // Use the combined bounds of all boards
     for (const board of boards) {
       if (board.center && board.width && board.height) {
-        const hw = board.width / 2
-        const hh = board.height / 2
-        minX = Math.min(minX, board.center.x - hw)
-        minY = Math.min(minY, board.center.y - hh)
-        maxX = Math.max(maxX, board.center.x + hw)
-        maxY = Math.max(maxY, board.center.y + hh)
+        const bounds = getBoundsFromElement({
+          center: board.center,
+          width: board.width,
+          height: board.height,
+        })
+        minX = Math.min(minX, bounds.minX)
+        minY = Math.min(minY, bounds.minY)
+        maxX = Math.max(maxX, bounds.maxX)
+        maxY = Math.max(maxY, bounds.maxY)
       }
     }
   }
 
   // If no boards found, try pcb_panel
   if (!Number.isFinite(minX)) {
-    const panel = (circuitJson as any[]).find((el) => el.type === "pcb_panel")
+    const panel = circuitJson.find(isPcbPanel)
     if (panel && panel.center && panel.width && panel.height) {
-      const hw = panel.width / 2
-      const hh = panel.height / 2
-      minX = panel.center.x - hw
-      minY = panel.center.y - hh
-      maxX = panel.center.x + hw
-      maxY = panel.center.y + hh
+      const bounds = getBoundsFromElement(panel)
+      minX = bounds.minX
+      minY = bounds.minY
+      maxX = bounds.maxX
+      maxY = bounds.maxY
     }
   }
 
@@ -72,19 +105,18 @@ export function calculateSvgBounds(circuitJson: CircuitJson): TextureBounds {
 export function getIndividualBoardBounds(
   circuitJson: CircuitJson,
 ): BoardBounds[] {
-  const boards = (circuitJson as any[]).filter((el) => el.type === "pcb_board")
+  const boards = circuitJson.filter(isPcbBoard)
   const bounds: BoardBounds[] = []
 
   for (const board of boards) {
     if (board.center && board.width && board.height) {
-      const hw = board.width / 2
-      const hh = board.height / 2
-      bounds.push({
-        minX: board.center.x - hw,
-        maxX: board.center.x + hw,
-        minY: board.center.y - hh,
-        maxY: board.center.y + hh,
-      })
+      bounds.push(
+        getBoundsFromElement({
+          center: board.center,
+          width: board.width,
+          height: board.height,
+        }),
+      )
     }
   }
 
