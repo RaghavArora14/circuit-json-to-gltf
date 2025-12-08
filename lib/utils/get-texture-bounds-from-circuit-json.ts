@@ -2,11 +2,10 @@ import type { AnyCircuitElement, PcbBoard, PcbPanel } from "circuit-json"
 import type { Bounds } from "@tscircuit/math-utils"
 
 /**
- * Get the combined bounds of all pcb_board elements in the circuit.
- * This matches what circuit-to-svg uses for rendering the texture.
- * Falls back to pcb_panel bounds if no boards exist.
+ * Get the bounds that circuit-to-svg uses for rendering the texture.
+ * Computes combined bounds of all pcb_board elements, or pcb_panel if no boards exist.
  */
-export function getPcbBoundsFromCircuitJson(
+export function getTextureBoundsFromCircuitJson(
   circuitJson: AnyCircuitElement[],
 ): Bounds {
   let minX = Infinity
@@ -28,7 +27,7 @@ export function getPcbBoundsFromCircuitJson(
     }
   }
 
-  // Fallback to pcb_panel if no boards found
+  // Use pcb_panel if no boards found
   if (minX === Infinity) {
     for (const el of circuitJson) {
       if (el.type === "pcb_panel") {
