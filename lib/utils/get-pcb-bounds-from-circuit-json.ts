@@ -14,7 +14,6 @@ export function getPcbBoundsFromCircuitJson(
   let maxX = -Infinity
   let maxY = -Infinity
 
-  // First try to get bounds from pcb_board elements
   for (const el of circuitJson) {
     if (el.type === "pcb_board") {
       const board = el as PcbBoard
@@ -29,26 +28,27 @@ export function getPcbBoundsFromCircuitJson(
     }
   }
 
-  if (minX !== Infinity) {
-    return { minX, maxX, minY, maxY }
-  }
-
   // Fallback to pcb_panel if no boards found
-  for (const el of circuitJson) {
-    if (el.type === "pcb_panel") {
-      const panel = el as PcbPanel
-      if (panel.center && panel.width && panel.height) {
-        const halfWidth = panel.width / 2
-        const halfHeight = panel.height / 2
-        return {
-          minX: panel.center.x - halfWidth,
-          maxX: panel.center.x + halfWidth,
-          minY: panel.center.y - halfHeight,
-          maxY: panel.center.y + halfHeight,
+  if (minX === Infinity) {
+    for (const el of circuitJson) {
+      if (el.type === "pcb_panel") {
+        const panel = el as PcbPanel
+        if (panel.center && panel.width && panel.height) {
+          const halfWidth = panel.width / 2
+          const halfHeight = panel.height / 2
+          minX = panel.center.x - halfWidth
+          maxX = panel.center.x + halfWidth
+          minY = panel.center.y - halfHeight
+          maxY = panel.center.y + halfHeight
+          break
         }
       }
     }
   }
 
-  throw new Error("No pcb_board or pcb_panel found in circuit json")
+  if (minX === Infinity) {
+    throw new Error("No pcb_board or pcb_panel found in circuit json")
+  }
+
+  return { minX, maxX, minY, maxY }
 }
