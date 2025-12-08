@@ -23,6 +23,7 @@ export async function renderBoardLayer(
     matchBoardAspectRatio: true,
     backgroundColor,
     drawPaddingOutsideBoard: false,
+    useOnlyBoardBounds: true,
     showSolderMask: true,
     colorOverrides: {
       copper: {
