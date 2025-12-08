@@ -25,11 +25,8 @@ import { loadFootprinterModel } from "../loaders/footprinter"
 import { renderBoardTextures } from "./board-renderer"
 import { COORDINATE_TRANSFORMS } from "../utils/coordinate-transform"
 import { scaleMesh } from "../utils/mesh-scale"
-import {
-  createBoardMesh,
-  createBoundingBox,
-  geom3ToTriangles,
-} from "../utils/pcb-board-geometry"
+import { createBoardMesh } from "../utils/pcb-board-geometry"
+import { createPanelMesh } from "../utils/pcb-panel-geometry"
 import { extrudeLinear } from "@jscad/modeling/src/operations/extrusions"
 import { polygon } from "@jscad/modeling/src/primitives"
 import { rotateX, translate } from "@jscad/modeling/src/operations/transforms"
@@ -86,7 +83,7 @@ export async function convertCircuitJsonTo3D(
       []) as PCBPlatedHole[]
     const pcbCutouts = (db.pcb_cutout?.list?.() ?? []) as PcbCutout[]
 
-    const panelMesh = createBoardMesh(pcbPanel, {
+    const panelMesh = createPanelMesh(pcbPanel, {
       thickness: effectiveBoardThickness,
       holes: pcbHoles,
       platedHoles: pcbPlatedHoles,
