@@ -15,8 +15,14 @@ import type {
   CircuitTo3DOptions,
   Camera3D,
   Light3D,
-  STLMesh,
 } from "../types"
+import type { Bounds } from "@tscircuit/math-utils"
+
+/** Box3D with PCB-specific texture mapping fields */
+interface PcbBox3D extends Box3D {
+  textureBounds?: Bounds
+  boardBounds?: Bounds[]
+}
 import { loadSTL } from "../loaders/stl"
 import { loadOBJ } from "../loaders/obj"
 import { loadGLB } from "../loaders/glb"
@@ -93,7 +99,7 @@ export async function convertCircuitJsonTo3D(
     const meshWidth = panelMesh.boundingBox.max.x - panelMesh.boundingBox.min.x
     const meshHeight = panelMesh.boundingBox.max.z - panelMesh.boundingBox.min.z
 
-    const panelBox: Box3D = {
+    const panelBox: PcbBox3D = {
       center: {
         x: pcbPanel.center.x,
         y: 0,
@@ -120,8 +126,8 @@ export async function convertCircuitJsonTo3D(
           bottom: textures.bottom,
         }
         // Set PCB-specific fields for texture mapping
-        ;(panelBox as any).textureBounds = textures.bounds
-        ;(panelBox as any).boardBounds = textures.boardBounds
+        panelBox.textureBounds = textures.bounds
+        panelBox.boardBounds = textures.boardBounds
       } catch (error) {
         console.warn("Failed to render panel textures:", error)
         // If texture rendering fails, use the fallback color
@@ -151,7 +157,7 @@ export async function convertCircuitJsonTo3D(
     const meshWidth = boardMesh.boundingBox.max.x - boardMesh.boundingBox.min.x
     const meshHeight = boardMesh.boundingBox.max.z - boardMesh.boundingBox.min.z
 
-    const boardBox: Box3D = {
+    const boardBox: PcbBox3D = {
       center: {
         x: pcbBoard.center.x,
         y: 0,
@@ -178,8 +184,8 @@ export async function convertCircuitJsonTo3D(
           bottom: textures.bottom,
         }
         // Set PCB-specific fields for texture mapping
-        ;(boardBox as any).textureBounds = textures.bounds
-        ;(boardBox as any).boardBounds = textures.boardBounds
+        boardBox.textureBounds = textures.bounds
+        boardBox.boardBounds = textures.boardBounds
       } catch (error) {
         console.warn("Failed to render board textures:", error)
         boardBox.color = pcbColor

@@ -349,9 +349,6 @@ export class GLTFBuilder {
       }
     }
 
-    const topTriangles = topTrianglesTextured
-    const bottomTriangles = bottomTrianglesTextured
-
     // Create materials
     const materials: {
       triangles: NonNullable<typeof box.mesh>["triangles"]
@@ -359,7 +356,7 @@ export class GLTFBuilder {
     }[] = []
 
     // Top material with texture
-    if (topTriangles.length > 0 && box.texture?.top) {
+    if (topTrianglesTextured.length > 0 && box.texture?.top) {
       const topMaterialIndex = this.addMaterial({
         name: `TopMaterial_${this.materials.length}`,
         pbrMetallicRoughness: {
@@ -381,17 +378,17 @@ export class GLTFBuilder {
         }
       }
       materials.push({
-        triangles: topTriangles,
+        triangles: topTrianglesTextured,
         materialIndex: topMaterialIndex,
       })
     }
 
     // Bottom material with texture
-    if (bottomTriangles.length > 0 && box.texture?.bottom) {
+    if (bottomTrianglesTextured.length > 0 && box.texture?.bottom) {
       const bottomMaterialIndex = this.addMaterial({
         name: `BottomMaterial_${this.materials.length}`,
         pbrMetallicRoughness: {
-          // baseColorFactor: [  0.04,
+          // baseColorFactor: [     0.04,
           //   0.16,
           //   0.08, 1.0],
           metallicFactor: 0.0,
@@ -411,7 +408,7 @@ export class GLTFBuilder {
         }
       }
       materials.push({
-        triangles: bottomTriangles,
+        triangles: bottomTrianglesTextured,
         materialIndex: bottomMaterialIndex,
       })
     }
