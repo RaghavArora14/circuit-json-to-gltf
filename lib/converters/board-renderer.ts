@@ -37,15 +37,16 @@ export async function renderBoardLayer(
     },
   })
 
-  return await convertSvgToPng(svg, resolution, backgroundColor)
+  return await convertSvgToPng({ svgString: svg, resolution, backgroundColor })
 }
 
 // Intelligent SVG to PNG conversion based on platform
-async function convertSvgToPng(
-  svgString: string,
-  resolution: number,
-  backgroundColor: string,
-): Promise<string> {
+async function convertSvgToPng(opts: {
+  svgString: string
+  resolution: number
+  backgroundColor: string
+}): Promise<string> {
+  const { svgString, resolution, backgroundColor } = opts
   // Check if we're in a browser environment
   if (typeof window !== "undefined" && typeof document !== "undefined") {
     const { svgToPngDataUrl } = await import("../utils/svg-to-png-browser")
@@ -69,16 +70,17 @@ async function convertSvgToPng(
       error,
     )
     // Fallback to canvas method if native import fails
-    return convertSvgToCanvasBrowser(svgString, resolution, backgroundColor)
+    return convertSvgToCanvasBrowser({ svgString, resolution, backgroundColor })
   }
 }
 
 // Browser-based Canvas SVG conversion
-async function convertSvgToCanvasBrowser(
-  svgString: string,
-  resolution: number,
-  backgroundColor: string,
-): Promise<string> {
+async function convertSvgToCanvasBrowser(opts: {
+  svgString: string
+  resolution: number
+  backgroundColor: string
+}): Promise<string> {
+  const { svgString, resolution, backgroundColor } = opts
   return new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas")
     canvas.width = resolution
