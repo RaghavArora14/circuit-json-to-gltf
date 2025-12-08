@@ -352,6 +352,7 @@ export class GLTFBuilder {
     const topTriangles = topTrianglesTextured
     const bottomTriangles = bottomTrianglesTextured
 
+    // Create materials
     const materials: {
       triangles: NonNullable<typeof box.mesh>["triangles"]
       materialIndex: number
@@ -385,10 +386,14 @@ export class GLTFBuilder {
       })
     }
 
+    // Bottom material with texture
     if (bottomTriangles.length > 0 && box.texture?.bottom) {
       const bottomMaterialIndex = this.addMaterial({
         name: `BottomMaterial_${this.materials.length}`,
         pbrMetallicRoughness: {
+          // baseColorFactor: [  0.04,
+          //   0.16,
+          //   0.08, 1.0],
           metallicFactor: 0.0,
           roughnessFactor: 0.8,
         },
@@ -411,6 +416,7 @@ export class GLTFBuilder {
       })
     }
 
+    // Side material (green)
     if (sideTriangles.length > 0) {
       const sideMaterialIndex = this.addMaterial({
         name: `GreenSideMaterial_${this.materials.length}`,
@@ -449,6 +455,7 @@ export class GLTFBuilder {
 
     const primitives: any[] = []
 
+    // Calculate bounds from all triangles
     let texMinX: number
     let texMaxX: number
     let texMinY: number

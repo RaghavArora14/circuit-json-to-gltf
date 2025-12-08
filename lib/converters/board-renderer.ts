@@ -40,11 +40,13 @@ export async function renderBoardLayer(
   return await convertSvgToPng(svg, resolution, backgroundColor)
 }
 
+// Intelligent SVG to PNG conversion based on platform
 async function convertSvgToPng(
   svgString: string,
   resolution: number,
   backgroundColor: string,
 ): Promise<string> {
+  // Check if we're in a browser environment
   if (typeof window !== "undefined" && typeof document !== "undefined") {
     const { svgToPngDataUrl } = await import("../utils/svg-to-png-browser")
 
@@ -54,6 +56,7 @@ async function convertSvgToPng(
     })
   }
 
+  // Node.js/Bun: Use native #svg for high-quality rendering
   try {
     const { svgToPngDataUrl } = await import("../utils/svg-to-png")
     return await svgToPngDataUrl(svgString, {
@@ -65,6 +68,7 @@ async function convertSvgToPng(
       "Failed to load native svg-to-png, falling back to browser method:",
       error,
     )
+    // Fallback to canvas method if native import fails
     return convertSvgToCanvasBrowser(svgString, resolution, backgroundColor)
   }
 }
@@ -81,11 +85,14 @@ async function convertSvgToCanvasBrowser(
     canvas.height = resolution
     const ctx = canvas.getContext("2d")!
 
+    // Fill with background color first
     ctx.fillStyle = backgroundColor
     ctx.fillRect(0, 0, resolution, resolution)
 
+    // Create SVG data URL
     const svgDataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`
 
+    // Create Image from SVG
     const img = new Image()
     img.onload = () => {
       try {
