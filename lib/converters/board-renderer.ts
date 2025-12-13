@@ -1,8 +1,7 @@
 import type { CircuitJson } from "circuit-json"
-import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
+import { convertCircuitJsonToPcbSvg, getPcbTextureBounds } from "circuit-to-svg"
 import type { BoardRenderOptions } from "../types"
 import type { Bounds } from "@tscircuit/math-utils"
-import { getTextureBoundsFromCircuitJson } from "../utils/get-texture-bounds-from-circuit-json"
 import { getIndividualBoardBounds } from "../utils/get-individual-board-bounds"
 
 export async function renderBoardLayer(
@@ -128,7 +127,9 @@ export async function renderBoardTextures(
   bounds: Bounds
   boardBounds: Bounds[]
 }> {
-  const bounds = getTextureBoundsFromCircuitJson(circuitJson)
+  // Use getPcbTextureBounds from circuit-to-svg to get the exact bounds used for SVG rendering
+  // This matches the bounds used when rendering with useOnlyBoardBounds: true
+  const bounds = getPcbTextureBounds(circuitJson)
   const boardBounds = getIndividualBoardBounds(circuitJson)
 
   const [top, bottom] = await Promise.all([
